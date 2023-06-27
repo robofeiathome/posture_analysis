@@ -14,6 +14,7 @@ class PostureAnalyzer:
         self.bridge = CvBridge()
         self.camera_topic = rospy.get_param('~camera_topic', '/usb_cam/image_raw')
         self.camera_subscriber = rospy.Subscriber(self.camera_topic, Image, self.callback_on_new_image)
+        self.last_pointing_direction = None
 
     def callback_on_new_image(self, image_message):
         try:
@@ -36,9 +37,9 @@ class PostureAnalyzer:
 
     def publish_pointing_side(self, right_shoulder_angle, left_shoulder_angle):
         if right_shoulder_angle > 20 > left_shoulder_angle:
-            return 'left'
+            self.last_pointing_direction = 'left'
         elif right_shoulder_angle < 20 < left_shoulder_angle:
-            return 'right'
+            self.last_pointing_direction = 'right'
 
     def analyze_posture_in_frame(self, frame):
         with self.mediapipe_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
