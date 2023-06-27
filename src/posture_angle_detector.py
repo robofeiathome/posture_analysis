@@ -2,7 +2,6 @@
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -10,23 +9,17 @@ import numpy as np
 
 class PostureAnalyzer:
     def __init__(self):
-        rospy.init_node('posture_analyzer')
         self.mediapipe_drawing = mp.solutions.drawing_utils
         self.mediapipe_pose = mp.solutions.pose
         self.bridge = CvBridge()
         self.camera_topic = rospy.get_param('~camera_topic', '/usb_cam/image_raw')
-        self.processed_image_topic = '/processed_image'
         self.camera_subscriber = rospy.Subscriber(self.camera_topic, Image, self.callback_on_new_image)
-        self.processed_image_publisher = rospy.Publisher(self.processed_image_topic, Image, queue_size=10)
-        self.pointing_side_publisher = rospy.Publisher('/pointing_side', String, queue_size=10)
 
     def callback_on_new_image(self, image_message):
         try:
             image_frame = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='passthrough')
             image_frame_copy = np.copy(image_frame)
-            processed_frame = self.analyze_posture_in_frame(image_frame_copy)
-            processed_image_message = self.bridge.cv2_to_imgmsg(processed_frame, encoding='bgr8')
-            self.processed_image_publisher.publish(processed_image_message)
+            self.analyze_posture_in_frame(image_frame_copy)
         except Exception as error:
             print(error)
             return
@@ -43,10 +36,8 @@ class PostureAnalyzer:
 
     def publish_pointing_side(self, right_shoulder_angle, left_shoulder_angle):
         if right_shoulder_angle > 20 > left_shoulder_angle:
-            self.pointing_side_publisher.publish('left')
             return 'left'
         elif right_shoulder_angle < 20 < left_shoulder_angle:
-            self.pointing_side_publisher.publish('right')
             return 'right'
 
     def analyze_posture_in_frame(self, frame):
