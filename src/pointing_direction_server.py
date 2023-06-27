@@ -9,7 +9,7 @@ class PostureService:
         self.analyzer = PostureAnalyzer()
         self.service = rospy.Service('pointing_direction', PointingDirection, self.handle_pointing_direction)
 
-    def handle_pointing_direction(self):
+    def handle_pointing_direction(self, req):
         direction = self.analyzer.last_pointing_direction
         return PointingDirectionResponse(direction if direction else 'unknown')
 
