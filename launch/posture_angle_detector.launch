@@ -1,5 +1,5 @@
 <launch>
-    <node name='posture_angle_detector' pkg='posture_analysis' type='posture_angle_detector.py' output='screen'>
+    <node name='posture_angle_detector' pkg='posture_analysis' type='pointing_direction_server.py' output='screen'>
         <param name='camera_topic' value='/usb_cam/image_raw'/>
     </node>
 </launch>
