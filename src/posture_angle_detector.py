@@ -14,7 +14,7 @@ class PostureAnalyzer:
         self.mediapipe_drawing = mp.solutions.drawing_utils
         self.mediapipe_pose = mp.solutions.pose
         self.bridge = CvBridge()
-        self.camera_topic = '/usb_cam/image_raw'
+        self.camera_topic = rospy.get_param('~camera_topic', '/usb_cam/image_raw')
         self.processed_image_topic = '/processed_image'
         self.camera_subscriber = rospy.Subscriber(self.camera_topic, Image, self.callback_on_new_image)
         self.processed_image_publisher = rospy.Publisher(self.processed_image_topic, Image, queue_size=10)
