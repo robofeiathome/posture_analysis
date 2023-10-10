@@ -93,6 +93,8 @@ class PostureAnalyzer:
                                                   self.mediapipe_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=2),
                                                   self.mediapipe_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
                                                   )
+            
+            cv2.imwrite("pointing_output.jpg", frame)
 
         direction = self.publish_pointing_side(right_shoulder_angle, right_elbow_angle, left_shoulder_angle, left_elbow_angle)
         return direction
