@@ -6,30 +6,23 @@ from std_msgs.msg import String
 import cv2
 import mediapipe as mp
 import numpy as np
-
+from posture_analysis.srv import PointingDirection
 
 class PostureAnalyzer:
     def __init__(self):
+        self.service = rospy.Service('pointing_direction', PointingDirection, self.handler)
         self.mediapipe_drawing = mp.solutions.drawing_utils
         self.mediapipe_pose = mp.solutions.pose
         self.bridge = CvBridge()
         self.camera_topic = rospy.get_param('~camera_topic', '/usb_cam/image_raw')
-        self.camera_subscriber = rospy.Subscriber(self.camera_topic, Image, self.callback_on_new_image)
-        self.pointing_direction_publisher = rospy.Publisher('/pointing_direction', String, queue_size=10)
-        self.processed_image_publisher = rospy.Publisher('/processed_image', Image, queue_size=10)
+        self.camera_subscriber = rospy.Subscriber(self.camera_topic, Image, self.image_callback)
+        self.current_image = None
         self.last_pointing_direction = None
 
-    def callback_on_new_image(self, image_message):
-        try:
-            image_frame = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='passthrough')
-            image_frame_copy = np.copy(image_frame)
-            processed_image = self.analyze_posture_in_frame(image_frame_copy)
-            processed_image_message = self.bridge.cv2_to_imgmsg(processed_image, encoding='bgr8')
-            self.processed_image_publisher.publish(processed_image_message)
-
-        except Exception as error:
-            print(error)
-            return
+    def image_callback(self, image):
+        """Image callback"""
+        # Store value on a private attribute
+        self.current_image = image
 
     @staticmethod
     def calculate_angle(point_a, point_b, point_c):
@@ -41,16 +34,29 @@ class PostureAnalyzer:
 
         return np.degrees(angle)
 
-    def publish_pointing_side(self, right_shoulder_angle, left_shoulder_angle):
-        if right_shoulder_angle > 20 > left_shoulder_angle:
-            self.last_pointing_direction = 'left'
-            self.pointing_direction_publisher.publish('left')
-        elif right_shoulder_angle < 20 < left_shoulder_angle:
-            self.last_pointing_direction = 'right'
-            self.pointing_direction_publisher.publish('right')
+    def publish_pointing_side(self, right_shoulder_angle, right_elbow_angle, left_shoulder_angle, left_elbow_angle):
+
+        if (right_shoulder_angle <= 16 and left_shoulder_angle <= 16):
+            pass
+        elif (left_elbow_angle <= 130 and right_elbow_angle <= 130):
+            pass 
+        elif (right_shoulder_angle >= 15 and right_elbow_angle > 130):
+            if (left_shoulder_angle <= 15) or (left_elbow_angle < right_elbow_angle):
+                return 'left'
+            else:
+                return 'right'
+        elif (left_shoulder_angle >= 15 and left_elbow_angle > 130):
+            if (right_shoulder_angle <= 15) or (left_elbow_angle > right_elbow_angle):
+                return 'right'
+            else:
+                return 'left'
+        else:
+            pass
+
+        return None
 
     def analyze_posture_in_frame(self, frame):
-        with self.mediapipe_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+        with self.mediapipe_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=2) as pose:
             pose_detection_results = pose.process(frame)
 
             frame.flags.writeable = True
@@ -78,6 +84,8 @@ class PostureAnalyzer:
 
                 self.add_angle_text_to_frame(frame, right_shoulder_angle, right_shoulder_position)
                 self.add_angle_text_to_frame(frame, left_shoulder_angle, left_shoulder_position)
+                self.add_angle_text_to_frame(frame, right_elbow_angle, right_elbow_position)
+                self.add_angle_text_to_frame(frame, left_elbow_angle, left_elbow_position)
             except Exception as error:
                 print(error)
 
@@ -86,9 +94,8 @@ class PostureAnalyzer:
                                                   self.mediapipe_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
                                                   )
 
-            side = self.publish_pointing_side(right_shoulder_angle, left_shoulder_angle)
-
-            return frame
+        direction = self.publish_pointing_side(right_shoulder_angle, right_elbow_angle, left_shoulder_angle, left_elbow_angle)
+        return direction
 
     @staticmethod
     def get_landmark_position(landmarks, landmark_type):
@@ -101,7 +108,21 @@ class PostureAnalyzer:
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA
                     )
 
+    def handler(self, req):
+        try:
+            for i in range(5):
+                direction = self.analyze_posture_in_frame(self.current_image)
+                if direction is not None:
+                    break
+            return direction
+        except Exception as error:
+            print(error)
 
 if __name__ == '__main__':
-    posture_analyzer = PostureAnalyzer()
-    rospy.spin()
+    rospy.init_node('pointing_direction', log_level=rospy.ERROR)
+    PostureAnalyzer()
+
+    try:
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
