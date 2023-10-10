@@ -61,9 +61,11 @@ class PostureAnalyzer:
 
                 left_shoulder_position = self.get_landmark_position(landmarks, self.mediapipe_pose.PoseLandmark.LEFT_SHOULDER)
                 left_elbow_position = self.get_landmark_position(landmarks, self.mediapipe_pose.PoseLandmark.LEFT_ELBOW)
+                left_wrist_position = self.get_landmark_position(landmarks, self.mediapipe_pose.PoseLandmark.LEFT_WRIST)
 
                 right_shoulder_position = self.get_landmark_position(landmarks, self.mediapipe_pose.PoseLandmark.RIGHT_SHOULDER)
                 right_elbow_position = self.get_landmark_position(landmarks, self.mediapipe_pose.PoseLandmark.RIGHT_ELBOW)
+                right_wrist_position = self.get_landmark_position(landmarks, self.mediapipe_pose.PoseLandmark.RIGHT_WRIST)
 
                 left_hip_position = self.get_landmark_position(landmarks, self.mediapipe_pose.PoseLandmark.LEFT_HIP)
 
@@ -71,6 +73,8 @@ class PostureAnalyzer:
 
                 right_shoulder_angle = self.calculate_angle(right_hip_position, right_shoulder_position, right_elbow_position)
                 left_shoulder_angle = self.calculate_angle(left_hip_position, left_shoulder_position, left_elbow_position)
+                right_elbow_angle = self.calculate_angle(right_shoulder_position, right_elbow_position, right_wrist_position)
+                left_elbow_angle = self.calculate_angle(left_shoulder_position, left_elbow_position, left_wrist_position)
 
                 self.add_angle_text_to_frame(frame, right_shoulder_angle, right_shoulder_position)
                 self.add_angle_text_to_frame(frame, left_shoulder_angle, left_shoulder_position)
